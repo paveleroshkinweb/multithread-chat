@@ -11,9 +11,6 @@
     <modules>
         <module>client</module>
         <module>server</module>
-        <module>api</module>
-        <module>api</module>
-        <module>api</module>
         <module>web-api</module>
     </modules>
 

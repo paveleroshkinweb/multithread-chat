@@ -1,9 +1,6 @@
 package by.bsu.server.loader;
 
-import by.bsu.clientAgentChat.entity.Command;
-import by.bsu.clientAgentChat.entity.Entity;
-import by.bsu.clientAgentChat.entity.Message;
-import by.bsu.clientAgentChat.entity.Role;
+import by.bsu.clientAgentChat.entity.*;
 import by.bsu.server.util.EntityHandler;
 import by.bsu.server.util.WebApiHandler;
 import com.google.gson.Gson;
@@ -29,7 +26,7 @@ public class ServerLoader implements Closeable {
     private static final int THREAD_POOL_SIZE = 50;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
     private static Queue<Entity> clientsQueue = new ConcurrentLinkedQueue<>();
-    private static Queue<Entity> freeAgents = new ConcurrentLinkedQueue<>();
+    private static Queue<Entity> agentsQueue = new ConcurrentLinkedQueue<>();
     private static List<Entity> entities = Collections.synchronizedList(new ArrayList<>());
 
     private ServerSocket serverSocket;
@@ -43,7 +40,7 @@ public class ServerLoader implements Closeable {
         while (!serverSocket.isClosed()) {
             Socket socket = serverSocket.accept();
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String type = bufferedReader.readLine();
+            Type type = gson.fromJson(bufferedReader.readLine(), Type.class);
             handleType(type, socket, bufferedReader);
         }
     }
@@ -54,55 +51,52 @@ public class ServerLoader implements Closeable {
                             .collect(Collectors.toList());
     }
 
-    public static void delelteEntity(String  id) {
+    public static void deleteEntity(String  id) {
         entities.removeIf(entity -> entity.getId().equals(id));
     }
 
     public static void handle(Entity entity) {
         if (entity.getRole() == Role.AGENT) {
           if (clientsQueue.size() > 0) {
-              Entity client = clientsQueue.poll();
-              client.setCompanion(entity);
-              entity.setCompanion(client);
-              executorService.submit(new EntityHandler(client));
-              executorService.submit(new EntityHandler(entity));
+              setCompanion(entity, clientsQueue.poll());
+          } else {
+              agentsQueue.add(entity);
+              sendStartMessage(entity, agentsQueue.size());
           }
-          else {
-              freeAgents.add(entity);
-              Message message = new Message("You has been added to the agent queue. You position: " + freeAgents.size(),
-                                                                                                            Command.INFO);
-              entity.sendMessage(message.toString());
-              logger.info(entity + " has been added to the agent queue");
-          }
-        }
-        else {
-          if (freeAgents.size() > 0) {
-              Entity agent = freeAgents.poll();
-              entity.setCompanion(agent);
-              agent.setCompanion(entity);
-              executorService.submit(new EntityHandler(entity));
-              executorService.submit(new EntityHandler(agent));
-          }
-          else {
+        } else {
+          if (agentsQueue.size() > 0) {
+              setCompanion(entity, agentsQueue.poll());
+          } else {
               clientsQueue.add(entity);
-              Message message = new Message("You has been added to the client queue. You position: " + clientsQueue.size(),
-                                                                                                                Command.INFO);
-              entity.sendMessage(message.toString());
-              logger.info(entity + " has been added to the client queue");
+              sendStartMessage(entity, clientsQueue.size());
           }
         }
     }
 
-    private static void handleType(String type, Socket socket, BufferedReader bufferedReader) throws IOException {
+    private static void setCompanion(Entity entity, Entity companion) {
+        entity.setCompanion(companion);
+        companion.setCompanion(entity);
+        executorService.submit(new EntityHandler(entity));
+        executorService.submit(new EntityHandler(companion));
+    }
+
+    private static void sendStartMessage(Entity entity, int size) {
+        Message message = new Message("You has been added to the queue. You position: " + size,
+                Command.INFO);
+        entity.sendMessage(message.toString());
+        logger.info(entity + " has been added to the queue");
+    }
+
+    private static void handleType(Type type, Socket socket, BufferedReader bufferedReader) throws IOException {
         switch (type) {
-            case "CONSOLE":
+            case CONSOLE:
                 Entity entity = gson.fromJson(bufferedReader.readLine(), Entity.class);
                 entity.setSocket(socket);
                 logger.info("New entity: " + entity);
                 entities.add(entity);
                 handle(entity);
                 break;
-            case "WEBAPI":
+            case WEBAPI:
                 executorService.submit(new WebApiHandler(socket));
                 break;
 

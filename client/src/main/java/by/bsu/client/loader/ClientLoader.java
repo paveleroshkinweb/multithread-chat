@@ -7,6 +7,7 @@ import by.bsu.clientAgentChat.entity.Command;
 import by.bsu.clientAgentChat.entity.Entity;
 import by.bsu.clientAgentChat.entity.Message;
 import by.bsu.clientAgentChat.entity.Type;
+import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.Socket;
@@ -38,8 +39,9 @@ public class ClientLoader implements Closeable {
     public void start() throws IOException {
         new ChatListener(this.entity);
         try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in))) {
+            Gson gson = new Gson();
             MessageValidator messageValidator = new MessageValidator();
-            this.entity.sendMessage(Type.CONSOLE.toString());
+            this.entity.sendMessage(gson.toJson(Type.CONSOLE));
             this.entity.sendMessage(this.entity.toString());
             while (!socket.isClosed()) {
                 String line = bufferedReader.readLine();

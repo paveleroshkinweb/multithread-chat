@@ -2,16 +2,51 @@ package by.bsu.server.util;
 
 import by.bsu.clientAgentChat.entity.Entity;
 import by.bsu.clientAgentChat.entity.Role;
+import by.bsu.clientAgentChat.entity.WebCommand;
 import by.bsu.server.loader.ServerLoader;
 import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 public class WebApiHandler implements Runnable {
 
     private final Socket socket;
+
+    private static Gson gson = new Gson();
+    private static Map<WebCommand, String> datas;
+
+    static {
+        datas = new HashMap<WebCommand, String>() {
+            {
+                put(WebCommand.GET_ALL_AGENTS, getEntitiesByPredicate(entity -> entity.getRole() == Role.AGENT));
+
+                put(WebCommand.GET_ALL_CLIENTS, getEntitiesByPredicate(entity -> entity.getRole() == Role.CLIENT));
+
+                put(WebCommand.GET_ALL_ENTITIES, getAllEntities());
+
+                put(WebCommand.GET_FREE_AGENTS, getEntitiesByPredicate(entity -> entity.getRole() == Role.AGENT
+                                                                                    && entity.getCompanion() == null));
+
+                put(WebCommand.GET_FREE_CLIENTS, getEntitiesByPredicate(entity -> entity.getRole() == Role.CLIENT
+                                                                                    && entity.getCompanion() == null));
+
+                put(WebCommand.GET_FREE_ENTITIES, getEntitiesByPredicate(entity -> entity.getCompanion() == null));
+
+                put(WebCommand.GET_UNFREE_AGENTS, getEntitiesByPredicate(entity -> entity.getRole() == Role.AGENT
+                                                                                    && entity.getCompanion() != null));
+
+                put(WebCommand.GET_UNFREE_CLIENTS, getEntitiesByPredicate(entity -> entity.getRole() == Role.CLIENT
+                                                                                    && entity.getCompanion() != null));
+
+                put(WebCommand.GET_UNFREE_ENTITIES, getEntitiesByPredicate(entity -> entity.getCompanion() != null));
+            }
+        };
+    }
 
     public WebApiHandler(Socket socket) {
         this.socket = socket;
@@ -20,69 +55,41 @@ public class WebApiHandler implements Runnable {
     @Override
     public void run() {
         try {
-            Gson gson = new Gson();
             InputStreamReader inputStreamReader = new InputStreamReader(socket.getInputStream());
             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             BufferedWriter bufferedWriter = new BufferedWriter(outputStreamWriter);
             while (!socket.isClosed()) {
-                String webCommand = bufferedReader.readLine();
-                switch (webCommand) {
-                    case "GET_ALL_AGENTS":
-                        List<Entity> entities1 = ServerLoader.filterEntity(entity -> entity.getRole() == Role.AGENT);
-                        bufferedWriter.write(gson.toJson(entities1) + "\n");
-                        break;
-                    case "GET_ALL_CLIENTS":
-                        List<Entity> entities2 = ServerLoader.filterEntity(entity -> entity.getRole() == Role.CLIENT);
-                        bufferedWriter.write(gson.toJson(entities2) + "\n");
-                        break;
-                    case "GET_ALL_ENTITIES":
-                        List<Entity> entities3 = ServerLoader.getEntities();
-                        bufferedWriter.write(gson.toJson(entities3) + "\n");
-                        break;
-                    case "GET_FREE_AGENTS":
-                        List<Entity> entities4 = ServerLoader.filterEntity(entity -> entity.getRole() == Role.AGENT
-                                                                            && entity.getCompanion() == null);
-                        bufferedWriter.write(gson.toJson(entities4) + "\n");
-                        break;
-                    case "GET_FREE_CLIENTS":
-                        List<Entity> entities5 = ServerLoader.filterEntity(entity -> entity.getRole() == Role.CLIENT
-                                                                            && entity.getCompanion() == null);
-                        bufferedWriter.write(gson.toJson(entities5) + "\n");
-                        break;
-                    case "GET_FREE_ENTITIES":
-                        List<Entity> entities6 = ServerLoader.filterEntity(entity -> entity.getCompanion() == null);
-                        bufferedWriter.write(gson.toJson(entities6) + "\n");
-                        break;
-                    case "GET_ENTITY_BY_ID":
-                        String id = bufferedReader.readLine();
-                        List<Entity> res = ServerLoader.filterEntity(entity -> entity.getId().equals(id));
-                        if (res.size() == 0) {
-                            bufferedWriter.write("\n");
-                        }
-                        else {
-                            bufferedWriter.write(gson.toJson(res) + "\n");
-                        }
-                        break;
-                    case "GET_UNFREE_AGENTS":
-                        List<Entity> entities7 = ServerLoader.filterEntity(entity -> entity.getRole() == Role.AGENT
-                                                                            && entity.getCompanion() != null);
-                        bufferedWriter.write(gson.toJson(entities7) + "\n");
-                        break;
-                    case "GET_UNFREE_CLIENTS":
-                        List<Entity> entities8 = ServerLoader.filterEntity(entity -> entity.getRole() == Role.CLIENT
-                                                                            && entity.getCompanion() != null);
-                        bufferedWriter.write(gson.toJson(entities8) + "\n");
-                        break;
-                    case "GET_UNFREE_ENTITIES":
-                        List<Entity> entities9 = ServerLoader.filterEntity(entity -> entity.getCompanion() != null);
-                        bufferedWriter.write(gson.toJson(entities9) + "\n");
-                        break;
+                WebCommand webCommand = gson.fromJson(bufferedReader.readLine(), WebCommand.class);
+                String res;
+                if (webCommand == WebCommand.GET_ENTITY_BY_ID) {
+                    res = getEntityById(bufferedReader);
+                } else {
+                    res = datas.get(webCommand);
                 }
+                bufferedWriter.write(res + "\n");
                 bufferedWriter.flush();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    private static String getEntitiesByPredicate(Predicate<Entity> predicate) {
+        return gson.toJson(ServerLoader.filterEntity(predicate));
+    }
+
+    private static String getAllEntities() {
+        return gson.toJson(ServerLoader.getEntities());
+    }
+
+    private static String getEntityById(BufferedReader bufferedReader) throws IOException {
+        String id = bufferedReader.readLine();
+        List<Entity> res = ServerLoader.filterEntity(entity -> entity.getId().equals(id));
+        if (res.size() == 0) {
+            return "";
+        }
+        return gson.toJson(res.get(0));
+    }
+
 }

@@ -2,7 +2,10 @@ package by.bsu.webApi.service;
 
 import by.bsu.clientAgentChat.entity.Type;
 import by.bsu.clientAgentChat.entity.WebCommand;
+import by.bsu.webApi.constant.WebApiErrors;
+import by.bsu.webApi.util.WebCommandParser;
 import com.google.gson.Gson;
+import com.mysql.cj.util.StringUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -25,7 +28,7 @@ public class EntityService {
             socket = new Socket("localhost", 5555);
             bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            bufferedWriter.write(Type.WEBAPI + "\n");
+            bufferedWriter.write(gson.toJson(Type.WEBAPI) + "\n");
             bufferedWriter.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -35,41 +38,11 @@ public class EntityService {
     @GET
     public Response getEntities(@QueryParam("type") String type,
                                 @QueryParam("free") String isFree) throws IOException {
-        if (type == null) {
-            if (isFree == null) {
-                bufferedWriter.write(WebCommand.GET_ALL_ENTITIES + "\n");
-            }
-            else if (isFree.equals("true")) {
-                bufferedWriter.write(WebCommand.GET_FREE_ENTITIES + "\n");
-            }
-            else if (isFree.equals("false")) {
-                bufferedWriter.write(WebCommand.GET_UNFREE_ENTITIES + "\n");
-            }
+        WebCommand command = WebCommandParser.getWebCommandByParams(type, isFree);
+        if (command == null) {
+            return formBadResponse(404, WebApiErrors.incorrectRequest);
         }
-        if (type != null) {
-            if (type.equals("agent")) {
-                if (isFree == null) {
-                    bufferedWriter.write(WebCommand.GET_ALL_AGENTS + "\n");
-                }
-                else if (isFree.equals("true")) {
-                    bufferedWriter.write(WebCommand.GET_FREE_AGENTS + "\n");
-                }
-                else if (isFree.equals("false")) {
-                    bufferedWriter.write(WebCommand.GET_UNFREE_AGENTS + "\n");
-                }
-            }
-            else {
-                if (isFree == null) {
-                    bufferedWriter.write(WebCommand.GET_ALL_CLIENTS + "\n");
-                }
-                else if (isFree.equals("true")){
-                    bufferedWriter.write(WebCommand.GET_FREE_CLIENTS + "\n");
-                }
-                else if (isFree.equals("false")) {
-                    bufferedWriter.write(WebCommand.GET_UNFREE_CLIENTS + "\n");
-                }
-            }
-        }
+        bufferedWriter.write(gson.toJson(command)+ "\n");
         bufferedWriter.flush();
         return formOkResponse(bufferedReader.readLine());
     }
@@ -77,17 +50,25 @@ public class EntityService {
     @Path("{id}")
     @GET
     public Response getEntityById(@PathParam("id") String id) throws IOException {
-        bufferedWriter.write(WebCommand.GET_ENTITY_BY_ID + "\n");
+        bufferedWriter.write(gson.toJson(WebCommand.GET_ENTITY_BY_ID) + "\n");
         bufferedWriter.flush();
         bufferedWriter.write(id + "\n");
         bufferedWriter.flush();
         String line = bufferedReader.readLine();
-        System.out.println(line);
+        if (StringUtils.isNullOrEmpty(line)) {
+            return formBadResponse(404, WebApiErrors.incorrectID);
+        }
         return formOkResponse(line);
     }
 
     private Response formOkResponse(Object entity) {
         return Response.ok()
+                .entity(entity)
+                .build();
+    }
+
+    private Response formBadResponse(int status, Object entity) {
+        return Response.status(status)
                 .entity(entity)
                 .build();
     }

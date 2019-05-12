@@ -1,1 +1,6 @@
 A new server on port 5555 was started!
+New entity: {"id":"31ce708e-fb1d-4b8a-b8e0-e186073fb522","name":"petya","role":"CLIENT"}
+{"id":"31ce708e-fb1d-4b8a-b8e0-e186073fb522","name":"petya","role":"CLIENT"} has been added to the queue
+New entity: {"id":"a6fee060-bdc1-46ea-bbd4-731be193d54f","name":"vasya","role":"CLIENT"}
+{"id":"a6fee060-bdc1-46ea-bbd4-731be193d54f","name":"vasya","role":"CLIENT"} has been added to the queue
+New entity: {"id":"45755eba-ef96-4175-afc6-eb2310d1c3ec","name":"valera","role":"AGENT"}

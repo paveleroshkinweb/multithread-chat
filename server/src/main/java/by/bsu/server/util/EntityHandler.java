@@ -52,7 +52,7 @@ public class EntityHandler implements Runnable {
     private void handleExit() {
         Entity companion = this.entity.getCompanion();
         companion.setCompanion(null);
-        ServerLoader.delelteEntity(entity.getId());
+        ServerLoader.deleteEntity(entity.getId());
         ServerLoader.handle(companion);
     }
 
