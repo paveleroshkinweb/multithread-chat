@@ -1,6 +1,7 @@
 A new server on port 5555 was started!
-New entity: {"id":"31ce708e-fb1d-4b8a-b8e0-e186073fb522","name":"petya","role":"CLIENT"}
-{"id":"31ce708e-fb1d-4b8a-b8e0-e186073fb522","name":"petya","role":"CLIENT"} has been added to the queue
-New entity: {"id":"a6fee060-bdc1-46ea-bbd4-731be193d54f","name":"vasya","role":"CLIENT"}
-{"id":"a6fee060-bdc1-46ea-bbd4-731be193d54f","name":"vasya","role":"CLIENT"} has been added to the queue
-New entity: {"id":"45755eba-ef96-4175-afc6-eb2310d1c3ec","name":"valera","role":"AGENT"}
+New entity: {"id":"e167db5e-3626-4c14-8b88-a6ea13aa50cd","name":"petya","role":"CLIENT"}
+{"id":"e167db5e-3626-4c14-8b88-a6ea13aa50cd","name":"petya","role":"CLIENT"} has been added to the queue
+New entity: {"id":"50c2a268-316a-451c-936d-74993df6c436","name":"petya","role":"CLIENT"}
+{"id":"50c2a268-316a-451c-936d-74993df6c436","name":"petya","role":"CLIENT"} has been added to the queue
+New entity: {"id":"63c12dcb-2e92-4317-8047-381e024bf61f","name":"petya","role":"AGENT"}
+{"id":"e167db5e-3626-4c14-8b88-a6ea13aa50cd","name":"petya","role":"CLIENT"} has been added to the queue
